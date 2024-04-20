@@ -1,5 +1,8 @@
 {
     "GOOGLE_PROJECT_KEY": "lahacks2024-420908",
     "GOOGLE_MAPS_KEY": "AIzaSyCaWDTptIUXlNLRmXanYZwlXwlt1Cj7lFc",
-    "OPEN_WEATHER_KEY": "a6fcfb18dd825cfa5a17cbf0e056c0b2"
+    "OPEN_WEATHER_KEY": "a6fcfb18dd825cfa5a17cbf0e056c0b2",
+    "time_received": false,
+    "buildings_received": false,
+    "weather_received": false
 }
