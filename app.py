@@ -4,6 +4,9 @@ from typing import Optional
 
 import numpy as np
 import torch
+import intel_extension_for_pytorch as ipex
+from intel_extension_for_transformers.neural_chat import build_chatbot
+
 
 from transformers import MusicgenForConditionalGeneration, MusicgenProcessor, set_seed
 from transformers.generation.streamers import BaseStreamer
@@ -14,35 +17,6 @@ import spaces
 
 model = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small")
 processor = MusicgenProcessor.from_pretrained("facebook/musicgen-small")
-
-title = "MusicGen Streaming"
-
-description = """
-Stream the outputs of the MusicGen text-to-music model by playing the generated audio as soon as the first chunk is ready. 
-Demo uses [MusicGen Small](https://huggingface.co/facebook/musicgen-small) in the 🤗 Transformers library. Note that the 
-demo works best on the Chrome browser. If there is no audio output, try switching browser to Chrome.
-"""
-
-article = """
-## How Does It Work?
-MusicGen is an auto-regressive transformer-based model, meaning generates audio codes (tokens) in a causal fashion.
-At each decoding step, the model generates a new set of audio codes, conditional on the text input and all previous audio codes. From the 
-frame rate of the [EnCodec model](https://huggingface.co/facebook/encodec_32khz) used to decode the generated codes to audio waveform, 
-each set of generated audio codes corresponds to 0.02 seconds. This means we require a total of 1000 decoding steps to generate
-20 seconds of audio.
-Rather than waiting for the entire audio sequence to be generated, which would require the full 1000 decoding steps, we can start 
-playing the audio after a specified number of decoding steps have been reached, a techinque known as [*streaming*](https://huggingface.co/docs/transformers/main/en/generation_strategies#streaming). 
-For example, after 250 steps we have the first 5 seconds of audio ready, and so can play this without waiting for the remaining 
-750 decoding steps to be complete. As we continue to generate with the MusicGen model, we append new chunks of generated audio 
-to our output waveform on-the-fly. After the full 1000 decoding steps, the generated audio is complete, and is composed of four 
-chunks of audio, each corresponding to 250 tokens.
-This method of playing incremental generations reduces the latency of the MusicGen model from the total time to generate 1000 tokens, 
-to the time taken to play the first chunk of audio (250 tokens). This can result in significant improvements to perceived latency, 
-particularly when the chunk size is chosen to be small. In practice, the chunk size should be tuned to your device: using a 
-smaller chunk size will mean that the first chunk is ready faster, but should not be chosen so small that the model generates slower 
-than the time it takes to play the audio.
-For details on how the streaming class works, check out the source code for the [MusicgenStreamer](https://huggingface.co/spaces/sanchit-gandhi/musicgen-streaming/blob/main/app.py#L52).
-"""
 
 
 class MusicgenStreamer(BaseStreamer):
@@ -94,6 +68,10 @@ class MusicgenStreamer(BaseStreamer):
         self.audio_queue = Queue()
         self.stop_signal = None
         self.timeout = timeout
+
+    def intel_stream(self, input_ids, steps):
+        model = Model().eval()
+        
 
     def apply_delay_pattern_mask(self, input_ids):
         # build the delay pattern mask for offsetting each codebook prediction by 1 (this behaviour is specific to MusicGen)
@@ -164,6 +142,8 @@ class MusicgenStreamer(BaseStreamer):
             return value
 
 
+
+
 sampling_rate = model.audio_encoder.config.sampling_rate
 frame_rate = model.audio_encoder.config.frame_rate
 
@@ -187,6 +167,12 @@ def generate_audio(text_prompt, audio_length_in_s=10.0, play_steps_in_s=2.0, see
         padding=True,
         return_tensors="pt",
     )
+
+    chatbot = build_chatbot()
+    response = chatbot.predict("Tell me about specific music keys used in the sound generation!")
+    print(response)
+
+    
 
     streamer = MusicgenStreamer(model, device=device, play_steps=play_steps)
 
@@ -226,6 +212,7 @@ demo = gr.Interface(
     description=description,
     article=article,
     cache_examples=False,
+    
 )
 
 
