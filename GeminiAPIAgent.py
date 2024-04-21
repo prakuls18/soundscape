@@ -7,6 +7,7 @@ from uagents import Agent, Context, Bureau, Model
 from timezonefinder import TimezoneFinder
 from datetime import datetime
 import pytz
+import asyncio
 
 class NearbyArea(Model):
     latitude: float
@@ -24,12 +25,6 @@ nearby_buildings = Agent(name="NearbyBuildings", seed="WhatsNearby")
 weather_API = Agent(name="WeatherAPI", seed="WeatherWhiz")
 time_API = Agent(name="TimeAPI", seed="TimeWhiz")
 
-bureau = Bureau()
-bureau.add(nearby_buildings)
-bureau.add(weather_API)
-bureau.add(time_API)
-bureau.add(sound_scape)
-
 
 def generate_response(project_id: str, location: str, query: str) -> str:
     # Initialize Vertex AI
@@ -40,12 +35,8 @@ def generate_response(project_id: str, location: str, query: str) -> str:
     # Query the model
     response = multimodal_model.generate_content(
         [
-            # Add an example image
-            Part.from_uri(
-                "gs://generativeai-downloads/images/scones.jpg", mime_type="image/jpeg"
-            ),
             # Add an example query
-            query,
+            query
         ]
     )
 
@@ -54,7 +45,7 @@ def generate_response(project_id: str, location: str, query: str) -> str:
 
 @nearby_buildings.on_message(model=NearbyArea)
 async def get_nearby_buildings(ctx: Context, sender: str, msg: NearbyArea):
-    ctx.logger.info(f"Time received message")
+    ctx.logger.info(f"Building received message")
     # Get stored values and message values
     GOOGLE_MAPS_KEY = ctx.storage.get('GOOGLE_MAPS_KEY')
     latitude = msg.latitude
@@ -79,13 +70,12 @@ async def get_nearby_buildings(ctx: Context, sender: str, msg: NearbyArea):
         print("Error: Nearby search failed")
         await ctx.send(sound_scape.address, None)
 
-    await ctx.send(sound_scape.address, Buildings(nearby_places))
+    await ctx.send(sound_scape.address, Buildings(buildings=nearby_places))
 
 
 @weather_API.on_message(model=NearbyArea)
 async def get_weather_description(ctx: Context, sender: str, msg: NearbyArea):
-    ctx.logger.info(f"Time received message")
-    print("Weather received message")
+    ctx.logger.info(f"Weather received message")
     # Get stored values and message values
     OPEN_WEATHER_KEY = ctx.storage.get('OPEN_WEATHER_KEY')
     latitude = msg.latitude
@@ -105,7 +95,7 @@ async def get_weather_description(ctx: Context, sender: str, msg: NearbyArea):
         # Extract relevant weather information
         description = weather_data["weather"][0]["description"]
 
-        await ctx.send(sound_scape.address, Message(description))
+        await ctx.send(sound_scape.address, Message(msg=description))
     else:
         # Handle error if API call fails
         print(f"Error: API request failed with status code {response.status_code}")
@@ -126,14 +116,18 @@ async def time_API_message_handler(ctx: Context, sender: str, msg: NearbyArea):
     # Get current time in the timezone
     tz = pytz.timezone(timezone_str)
     current_time = datetime.now(tz)
-    hour_min = str(current_time.hour) + ":" + str(current_time.minute)
+    hour_min = str(current_time.hour) + ":"
+    mins = str(current_time.minute)
+    if current_time.minute < 10:
+        mins = "0" + str(current_time.minute)
+    hour_min += mins
 
     if current_time.hour < 12:
         hour_min += " AM"
     else:
         hour_min += " PM"
     
-    await ctx.send(sound_scape.address, Message(hour_min))
+    await ctx.send(sound_scape.address, Message(msg=hour_min))
 
 def read_variables_from_file(file_path):
         variables = {}
@@ -147,7 +141,7 @@ def read_variables_from_file(file_path):
 
 
 @nearby_buildings.on_event("startup")
-async def main(ctx: Context):
+async def nearby_buildings_startup(ctx: Context):
 
     keys_path = "keys.txt"
 
@@ -159,7 +153,7 @@ async def main(ctx: Context):
     ctx.logger.info(f"startup complete for buildings")
 
 @weather_API.on_event("startup")
-async def main(ctx: Context):
+async def weather_API_startup(ctx: Context):
 
     keys_path = "keys.txt"
 
@@ -171,7 +165,7 @@ async def main(ctx: Context):
     ctx.logger.info(f"startup complete for weather")
 
 @sound_scape.on_event("startup")
-async def main(ctx: Context):
+async def sound_scape_startup(ctx: Context):
 
     keys_path = "keys.txt"
 
@@ -187,7 +181,7 @@ async def main(ctx: Context):
     ctx.logger.info(f"startup complete for soundscape")
 
 
-@sound_scape.on_interval(2)
+@sound_scape.on_interval(20)
 async def generate_prompt(ctx: Context):
     ctx.logger.info(f'generating prompt for music')
 
@@ -196,21 +190,27 @@ async def generate_prompt(ctx: Context):
     latitude = 34.0156229728407
     longitude = -118.49441383847054
 
-    radius = 20
+    radius = 20.0
     
     # Location of Gemini Pro server in LA, California
     location = "us-west2"
 
     nearby_area = NearbyArea(latitude=latitude, longitude=longitude, radius=radius)
 
+    ctx.logger.info(f"Before calls")
+
     await ctx.send(nearby_buildings.address, nearby_area)
+
+    ctx.logger.info(f"After first call")
 
     await ctx.send(weather_API.address, nearby_area)
 
     await ctx.send(time_API.address, nearby_area)
 
+    ctx.logger.info(f"After all calls")
+
     while (ctx.storage.get('time_received') != True or ctx.storage.get('buildings_received') != True or ctx.storage.get('weather_received') != True):
-        i = 1
+        await asyncio.sleep(0.5)
         # print(ctx.storage.get('time_received'), ctx.storage.get('buildings_received'), ctx.storage.get('weather_received'))
     
     ctx.storage.set('time_received', False)
@@ -272,19 +272,24 @@ async def generate_prompt(ctx: Context):
 
 @sound_scape.on_message(model=Buildings)
 async def building_handler(ctx: Context, sender: str, msg: Buildings):
-    ctx.storage.set('nearby_places', msg)
+    # print(msg.buildings)
+    ctx.storage.set('nearby_places', msg.buildings)
     ctx.storage.set('buildings_received', True)
 
 @sound_scape.on_message(model=Message)
 async def message_handler(ctx: Context, sender: str, msg: Message):
     if sender == weather_API.address:
-        ctx.storage.set('weather', msg)
+        ctx.storage.set('weather', msg.msg)
         ctx.storage.set('weather_received', True)
     elif sender == time_API.address:
-        ctx.storage.set('time_of_day', msg)
+        ctx.storage.set('time_of_day', msg.msg)
         ctx.storage.set('time_received', True)
     
-
+bureau = Bureau(port=8006)#endpoint="http://localhost:8006/submit")
+bureau.add(nearby_buildings)
+bureau.add(weather_API)
+bureau.add(time_API)
+bureau.add(sound_scape)
 
 if __name__ == "__main__":
     bureau.run()
