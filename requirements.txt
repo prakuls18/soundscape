@@ -6,3 +6,5 @@ googlemaps
 uagents
 timezonefinder
 pytz
+fastapi
+httpx
