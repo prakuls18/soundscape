@@ -37,7 +37,7 @@
                         "html_attributions": [
                             "<a href=\"https://maps.google.com/maps/contrib/108357514140650826171\">Harvelle&#39;s</a>"
                         ],
-                        "photo_reference": "ATplDJbEZtpdLxPWDbOwtCC1nxwEKddKFHh5Pu0zu8eeeyHcnWCp3HnWyXUZ2BhvZFk9Xzdr_LvpjKBvrD4UUrvfWaxA1JrFVsmWyAuorTR5xv0zpIpSjX_aWAC_YpPYsU3jus6oAin3qHmAiv3pPccwsPm9tb8MTcZcqDoTNRGs8UjskpWf",
+                        "photo_reference": "ATplDJbMSZCa61Ap7kkHxT7gZNfIhaqxgP1W52UN_eXeDD4X75McaJCdZACKgFGKmhmN7fmFXTP4d5wHJVzaVwZFhvT7YeCi0F6tShhyRuc12UhRd2512ZznoXoY0TGLl6KA-FUSTravhOzjBSPrYNfqCbVqe1qmsIn6Q6BUZPosUCivIAJI",
                         "width": 4032
                     }
                 ],
@@ -90,7 +90,7 @@
                         "html_attributions": [
                             "<a href=\"https://maps.google.com/maps/contrib/109545362052654461348\">Santa Monica Tobacco</a>"
                         ],
-                        "photo_reference": "ATplDJauQ82LoFoqEBgpm0EQYGFR7i_jvmjsqVvuwzrg0TbxpTd1LhtPFnfZTmUTm3B-Bid99YiDlyFDpbuDmtBMuUe3d3hjgtQjHBKK-rJA83Qet5NToD2HvXZMh2XIyRFkY7miBD1C7MWd0Y7D_DOhCeOR66rNA61B0CEPqxutDbS9X7mw",
+                        "photo_reference": "ATplDJZuSOJDJWmCnh4qXZx0fMDhfz9XEiVUG6FAP6q5HZjpjTWzXBbDVq3Jv1WfAKlV4wPkDiSmF_lyHLm4PcO4npEW3ZlN49THoLI94SAj5pjLnsAFyG6oHpu25drgPKzH-z61yVKb_JOwzg4mptRyoEKyOr832pwN3KhpSxozxhgiG-V5",
                         "width": 1440
                     }
                 ],
@@ -105,8 +105,8 @@
                 "types": [
                     "convenience_store",
                     "food",
-                    "point_of_interest",
                     "store",
+                    "point_of_interest",
                     "establishment"
                 ],
                 "user_ratings_total": 55,
@@ -219,7 +219,7 @@
                         "html_attributions": [
                             "<a href=\"https://maps.google.com/maps/contrib/114240132505769477888\">Ken Ward</a>"
                         ],
-                        "photo_reference": "ATplDJabzCYsum7AhkE1d8Utt6cs2q939-WwDca-LLAflyN_cHoo9wuXk2_97nHNixt7VcgJkUVJ2hM6MTSfoDoDTUsAcZa5CWsMnAoVYs5SiWE5095FBkPZ02iuJT9Gg2I_TXrvM87RiZR_EDhx5NoRXR21QiAg4J5Os-xCl-d2gJIVXAKl",
+                        "photo_reference": "ATplDJZL7sCD6onIaE-_7gV9Cd0zRmbBPXpv2fg9I557Qo45nKqDf6CysoLZzi8TX3FN5xxLWFSEAjPwEybNmxbPo5aIAMG-GVPx4UvY_hgE-YJxKsnn5vaKdNHVGJEg-7rarCWWWuSQ01P5_ZtnVfqKALhv8w7_YI6HiUsLhPt9YCFiN6Al",
                         "width": 4032
                     }
                 ],
@@ -270,7 +270,7 @@
                         "html_attributions": [
                             "<a href=\"https://maps.google.com/maps/contrib/107358163677923033365\">Mr. Appliance of Santa Monica</a>"
                         ],
-                        "photo_reference": "ATplDJbKaqKV-Qn6jbkqnO-zsQxjZuzV9Qvg_5eQTE3o-uaSsH_WXfzyvFF6ah9qrAqOQQvGNCMfbB5LfAE1U-2E2YivpWH5tvZXggE5hFQI9dSFbfP3gENO3mPK2x16gnsTMJMRKYhwdWISZI5ccPUZRsbcHh1KIN57T2qgE-IDmMBAtYf9",
+                        "photo_reference": "ATplDJZlREt4GDvcLMHLyxItXjEDpQqW7kBE2nsJ-hxat4wqzRCLQz-YXEcelmDaqwIs51K7DjChm-c4zJubNGL3TLDT10iCRZ0b0AbkLOQffX6ZoD_tNM6l2wrIj122VjzCDfxPdUHOfSTyJJ1mFydLYBXzarD26JOPC9H_pNprSSAubgcy",
                         "width": 4032
                     }
                 ],
@@ -321,8 +321,8 @@
                 "types": [
                     "grocery_or_supermarket",
                     "food",
-                    "point_of_interest",
                     "store",
+                    "point_of_interest",
                     "establishment"
                 ],
                 "vicinity": "1434 4th Street, Santa Monica"
@@ -331,5 +331,5 @@
         "status": "OK"
     },
     "weather": "clear sky",
-    "time_of_day": "17:18 PM"
+    "time_of_day": "18:07 PM"
 }
