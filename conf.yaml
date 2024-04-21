@@ -1,0 +1,13 @@
+# conf.yaml
+model:
+    name: musicgen
+    framework: pytorch_fx
+
+evaluation:
+    accuracy:
+        metric:
+            topk: 1
+
+tuning:
+  accuracy_criterion:
+    relative: 0.01

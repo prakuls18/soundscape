@@ -150,6 +150,16 @@ frame_rate = model.audio_encoder.config.frame_rate
 target_dtype = np.int16
 max_range = np.iinfo(target_dtype).max
 
+# launch code for Intel® Neural Compressor
+from neural_compressor.experimental import Quantization
+quantizer = Quantization("./conf.yaml")
+quantizer.model = model
+quantizer.calib_dataloader = test_loader
+quantizer.eval_dataloader = test_loader
+q_model = quantizer()
+q_model.save('./output')
+
+
 
 @spaces.GPU()
 def generate_audio(text_prompt, audio_length_in_s=10.0, play_steps_in_s=2.0, seed=0):
