@@ -7,22 +7,18 @@ from uagents import Agent, Context, Bureau, Model
 from timezonefinder import TimezoneFinder
 from datetime import datetime
 import pytz
-import asyncio
-
+import asyncio, httpx
 
 class NearbyArea(Model):
     latitude: float
     longitude: float
     radius: float
 
-
 class Buildings(Model):
     buildings: dict
 
-
 class Message(Model):
     msg: str
-
 
 sound_scape = Agent(name="SoundScape", seed="EnvironmentToMusic")
 nearby_buildings = Agent(name="NearbyBuildings", seed="WhatsNearby")
@@ -35,7 +31,7 @@ def generate_response(project_id: str, location: str, query: str) -> str:
     vertexai.init(project=project_id, location=location)
     # Load the model
     multimodal_model = GenerativeModel("gemini-1.0-pro-vision")
-
+    
     # Query the model
     response = multimodal_model.generate_content(
         [
@@ -51,7 +47,7 @@ def generate_response(project_id: str, location: str, query: str) -> str:
 async def get_nearby_buildings(ctx: Context, sender: str, msg: NearbyArea):
     ctx.logger.info(f"Building received message")
     # Get stored values and message values
-    GOOGLE_MAPS_KEY = ctx.storage.get("GOOGLE_MAPS_KEY")
+    GOOGLE_MAPS_KEY = ctx.storage.get('GOOGLE_MAPS_KEY')
     latitude = msg.latitude
     longitude = msg.longitude
     radius = msg.radius
@@ -63,7 +59,7 @@ async def get_nearby_buildings(ctx: Context, sender: str, msg: NearbyArea):
         "location": (latitude, longitude),
         "radius": radius,
         # Keyword or category filtering can be added here (optional)
-        "type": "point_of_interest",  # Example for category filter
+        "type": "point_of_interest"      # Example for category filter
     }
 
     # Send Nearby Search request
@@ -81,7 +77,7 @@ async def get_nearby_buildings(ctx: Context, sender: str, msg: NearbyArea):
 async def get_weather_description(ctx: Context, sender: str, msg: NearbyArea):
     ctx.logger.info(f"Weather received message")
     # Get stored values and message values
-    OPEN_WEATHER_KEY = ctx.storage.get("OPEN_WEATHER_KEY")
+    OPEN_WEATHER_KEY = ctx.storage.get('OPEN_WEATHER_KEY')
     latitude = msg.latitude
     longitude = msg.longitude
 
@@ -104,10 +100,10 @@ async def get_weather_description(ctx: Context, sender: str, msg: NearbyArea):
         # Handle error if API call fails
         print(f"Error: API request failed with status code {response.status_code}")
         await ctx.send(sound_scape.address, None)
-
+        
 
 @time_API.on_message(model=NearbyArea)
-async def time_API_message_handler(ctx: Context, sender: str, msg: NearbyArea):
+async def get_time_of_day(ctx: Context, sender: str, msg: NearbyArea):
     ctx.logger.info(f"Time received message")
     # Get stored values and message values
     latitude = msg.latitude
@@ -130,19 +126,18 @@ async def time_API_message_handler(ctx: Context, sender: str, msg: NearbyArea):
         hour_min += " AM"
     else:
         hour_min += " PM"
-
+    
     await ctx.send(sound_scape.address, Message(msg=hour_min))
 
-
 def read_variables_from_file(file_path):
-    variables = {}
-    with open(file_path, "r") as file:
-        for line in file:
-            line = line.strip()
-            if line:
-                key, value = line.split("=")
-                variables[key.strip()] = value.strip()
-    return variables
+        variables = {}
+        with open(file_path, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line:
+                    key, value = line.split('=')
+                    variables[key.strip()] = value.strip()
+        return variables
 
 
 @nearby_buildings.on_event("startup")
@@ -152,11 +147,10 @@ async def nearby_buildings_startup(ctx: Context):
 
     variables = read_variables_from_file(keys_path)
 
-    GOOGLE_MAPS_KEY = variables["MAPSKEY"]
+    GOOGLE_MAPS_KEY = variables['MAPSKEY']
 
-    ctx.storage.set("GOOGLE_MAPS_KEY", GOOGLE_MAPS_KEY)
+    ctx.storage.set('GOOGLE_MAPS_KEY', GOOGLE_MAPS_KEY)
     ctx.logger.info(f"startup complete for buildings")
-
 
 @weather_API.on_event("startup")
 async def weather_API_startup(ctx: Context):
@@ -165,11 +159,10 @@ async def weather_API_startup(ctx: Context):
 
     variables = read_variables_from_file(keys_path)
 
-    OPEN_WEATHER_KEY = variables["WEATHERKEY"]
+    OPEN_WEATHER_KEY = variables['WEATHERKEY']
 
-    ctx.storage.set("OPEN_WEATHER_KEY", OPEN_WEATHER_KEY)
+    ctx.storage.set('OPEN_WEATHER_KEY', OPEN_WEATHER_KEY)
     ctx.logger.info(f"startup complete for weather")
-
 
 @sound_scape.on_event("startup")
 async def sound_scape_startup(ctx: Context):
@@ -178,169 +171,139 @@ async def sound_scape_startup(ctx: Context):
 
     variables = read_variables_from_file(keys_path)
 
-    GOOGLE_PROJECT_KEY = variables["PROJECTKEY"]
+    GOOGLE_PROJECT_KEY = variables['PROJECTKEY']
 
-    ctx.storage.set("GOOGLE_PROJECT_KEY", GOOGLE_PROJECT_KEY)
+    ctx.storage.set('GOOGLE_PROJECT_KEY', GOOGLE_PROJECT_KEY)
 
-    ctx.storage.set("time_received", False)
-    ctx.storage.set("buildings_received", False)
-    ctx.storage.set("weather_received", False)
-    ctx.logger.info(f"startup complete for soundscape")
+    ctx.storage.set('time_received', False)
+    ctx.storage.set('buildings_received', False)
+    ctx.storage.set('weather_received', False)
+    ctx.logger.info(f"startup complete for SoundScape agent with address: " + sound_scape.address)
 
+@sound_scape.on_query(model=NearbyArea, replies={Message})
+async def save_coordinates(ctx: Context, sender: str, msg: NearbyArea):
+    ctx.storage.set('latitude', msg.latitude)
+    ctx.storage.set('longitude', msg.longitude)
+    ctx.storage.set('radius', msg.radius)
 
-@sound_scape.on_interval(20)
-async def generate_prompt(ctx: Context):
-    ctx.logger.info(f"generating prompt for music")
+    await ctx.send(sender, Message(msg="success"))
 
-    GOOGLE_PROJECT_KEY = ctx.storage.get("GOOGLE_PROJECT_KEY")
+@sound_scape.on_query(model=Message, replies={Message})
+async def get_audio(ctx: Context, sender: str, msg: NearbyArea):
+    music_prompt = ctx.storage.get('music_prompt')
+    await ctx.send(sender, Message(msg=music_prompt))
 
-    latitude = 34.0156229728407
-    longitude = -118.49441383847054
+@sound_scape.on_interval(15)
+async def generate_prompt(ctx: Context):  
+    ctx.logger.info(f'generating prompt for music')
 
-    radius = 20.0
+    GOOGLE_PROJECT_KEY = ctx.storage.get('GOOGLE_PROJECT_KEY')
 
+    try:
+        latitude = ctx.storage.get('latitude')
+        longitude = ctx.storage.get('longitude')
+        radius = ctx.storage.get('radius')
+    except:
+        ctx.logger.error("Missing a value for latitude, longitude, or radius")
+        return
+    
+    if latitude == None or longitude == None or radius == None:
+        ctx.logger.error("Missing a value for latitude, longitude, or radius")
+        return
+    
     # Location of Gemini Pro server in LA, California
-    location = "us-west1"
+    location = "us-west2"
 
     nearby_area = NearbyArea(latitude=latitude, longitude=longitude, radius=radius)
 
-    ctx.logger.info(f"Before calls")
-
     await ctx.send(nearby_buildings.address, nearby_area)
-
-    ctx.logger.info(f"After first call")
 
     await ctx.send(weather_API.address, nearby_area)
 
     await ctx.send(time_API.address, nearby_area)
 
-    ctx.logger.info(f"After all calls")
-
-    while (
-        ctx.storage.get("time_received") != True
-        or ctx.storage.get("buildings_received") != True
-        or ctx.storage.get("weather_received") != True
-    ):
+    while (ctx.storage.get('time_received') != True or ctx.storage.get('buildings_received') != True or ctx.storage.get('weather_received') != True):
         await asyncio.sleep(0.5)
         # print(ctx.storage.get('time_received'), ctx.storage.get('buildings_received'), ctx.storage.get('weather_received'))
+    
+    ctx.storage.set('time_received', False)
+    ctx.storage.set('buildings_received', False)
+    ctx.storage.set('weather_received', False)
 
-    ctx.storage.set("time_received", False)
-    ctx.storage.set("buildings_received", False)
-    ctx.storage.set("weather_received", False)
-
-    nearby_places = ctx.storage.get("nearby_places")
-    weather = ctx.storage.get("weather")
-    time_of_day = ctx.storage.get("time_of_day")
+    nearby_places = ctx.storage.get('nearby_places')
+    weather = ctx.storage.get('weather')
+    time_of_day = ctx.storage.get('time_of_day')
 
     ctx.logger.info("time_of_day: " + time_of_day)
 
+    ctx.storage.set('music_prompt', "Hi there :)")
+
+    return
+
     if nearby_places is not None:
-        with open("queries.txt", "w") as outfile:
+        with open('queries.txt', 'w') as outfile:
             buildings_found = False
             try:
-                vicinity = nearby_places["results"][0]["vicinity"]
+                vicinity = nearby_places['results'][0]['vicinity']
                 name = []
                 for i in range(0, 3):
                     try:
-                        name[i] = nearby_places["results"][i]["name"]
+                        name[i] = nearby_places['results'][i]['name']
                         buildings_found = True
                     except:
-                        ctx.logger.error(
-                            "Could not process the " + i + " place nearby."
-                        )
+                        ctx.logger.error("Could not process the " + i + " place nearby.")
             except:
-                ctx.logger.error(
-                    "No such buildings were found nearby, or a failure occurred during the prompt building process."
-                )
+                ctx.logger.error("No such buildings were found nearby, or a failure occurred during the prompt building process.")
 
-            prompt = ""
+            prompt = ""            
 
             if buildings_found:
                 if len(name) == 1:
-                    prompt = (
-                        "Suppose you are near the establishment/building "
-                        + name[0]
-                        + " in "
-                        + vicinity
-                        + "."
-                    )
+                    prompt = "Suppose you are near the establishment/building " + name[0] + " in " + vicinity + "."
                 elif len(name) == 2:
-                    prompt = (
-                        "Suppose you are near these two buildings in "
-                        + vicinity
-                        + ", closest being first and furthest away being last: "
-                        + name[0]
-                        + " and "
-                        + name[1]
-                        + "."
-                    )
+                    prompt = "Suppose you are near these two buildings in " + vicinity + ", closest being first and furthest away being last: " + name[0] + " and " + name[1] + "."
                 else:
-                    prompt = (
-                        "Suppose you are near these three buildings in "
-                        + vicinity
-                        + ", closest being first and furthest away being last: "
-                        + name[0]
-                        + ", "
-                        + name[1]
-                        + ", "
-                        + name[2]
-                        + "."
-                    )
-
-                prompt += (
-                    " If you had to come up with a vibe of music for these buildings while taking into account the current time of day ("
-                    + time_of_day
-                    + ") and weather of the area ("
-                    + weather
-                    + "), what would that vibe be? Please consolidate the recommendations for the type of vibe into a list. At the end, can you combine those into a prompt for a music generation model and begin the prompt with a @ symbol so I know where it starts?"
-                )
+                    prompt = "Suppose you are near these three buildings in " + vicinity + ", closest being first and furthest away being last: " + name[0] + ", " + name[1] + ", " + name[2] + "."
+                
+                prompt += " If you had to come up with a vibe of music for these buildings while taking into account the current time of day (" + time_of_day + ") and weather of the area (" + weather + "), what would that vibe be? Please consolidate the recommendations for the type of vibe into a list. At the end, can you combine those into a prompt for a music generation model and begin the prompt with a @ symbol so I know where it starts?"
                 outfile.write(prompt + "\n\n")
             else:
-                prompt = (
-                    "If you had to come up with a vibe of music for the area around "
-                    + vicinity
-                    + " while taking into account the current time of day ("
-                    + time_of_day
-                    + ") and weather of the area ("
-                    + weather
-                    + "), what would that vibe be? Please consolidate the recommendations for the type of vibe into a list. At the end, can you combine those into a prompt for a music generation model and begin the prompt with a @ symbol so I know where it starts?"
-                )
+                prompt = "If you had to come up with a vibe of music for the area around " + vicinity + " while taking into account the current time of day (" + time_of_day + ") and weather of the area (" + weather + "), what would that vibe be? Please consolidate the recommendations for the type of vibe into a list. At the end, can you combine those into a prompt for a music generation model and begin the prompt with a @ symbol so I know where it starts?"
 
             response = generate_response(GOOGLE_PROJECT_KEY, location, prompt)
 
-            parts = response.text.split("@")
+            parts = response.split("@")
 
             # Check if there is a "@" symbol and return the second part if it exists
             if len(parts) > 1:
                 music_prompt = parts[1]
-                with open("music_prompt.txt", "w") as outfile:
+                ctx.storage.set('music_prompt', music_prompt)
+                with open('queries.txt', 'w') as outfile:
                     outfile.write(music_prompt)
             else:
                 ctx.logger.error("Failed to get a music prompt")
 
-    with open("buildings.json", "w") as outfile:
+    with open('buildings.json', 'w') as outfile:
         # Use json.dump to write the dictionary to the file
-        json.dump(nearby_places, outfile)
+            json.dump(nearby_places, outfile)
 
 
 @sound_scape.on_message(model=Buildings)
 async def building_handler(ctx: Context, sender: str, msg: Buildings):
     # print(msg.buildings)
-    ctx.storage.set("nearby_places", msg.buildings)
-    ctx.storage.set("buildings_received", True)
-
+    ctx.storage.set('nearby_places', msg.buildings)
+    ctx.storage.set('buildings_received', True)
 
 @sound_scape.on_message(model=Message)
 async def message_handler(ctx: Context, sender: str, msg: Message):
     if sender == weather_API.address:
-        ctx.storage.set("weather", msg.msg)
-        ctx.storage.set("weather_received", True)
+        ctx.storage.set('weather', msg.msg)
+        ctx.storage.set('weather_received', True)
     elif sender == time_API.address:
-        ctx.storage.set("time_of_day", msg.msg)
-        ctx.storage.set("time_received", True)
-
-
-bureau = Bureau(port=8006)  # endpoint="http://localhost:8006/submit")
+        ctx.storage.set('time_of_day', msg.msg)
+        ctx.storage.set('time_received', True)
+    
+bureau = Bureau(port=8006)#endpoint="http://localhost:8006/submit")
 bureau.add(nearby_buildings)
 bureau.add(weather_API)
 bureau.add(time_API)

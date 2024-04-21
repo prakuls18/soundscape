@@ -1,3 +1,10 @@
 fastapi
 uvicorn
 pymongo
+vertexai
+googlemaps
+uagents
+timezonefinder
+pytz
+fastapi
+httpx
