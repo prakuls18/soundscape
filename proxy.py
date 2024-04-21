@@ -4,7 +4,7 @@ from uagents.query import query
 import requests, json, asyncio, time
 from typing import Optional
 
-    
+
 def make_get_request(base_url):
     music_prompt_url = f"{base_url}/audio"
 
@@ -14,8 +14,8 @@ def make_get_request(base_url):
         file_path = response.json()
         # Open the text file and read its contents
     try:
-        print("file_path: " +str(file_path))
-        with open(file_path, 'r') as file:
+        print("file_path: " + str(file_path))
+        with open(file_path, "r") as file:
             content = file.read()
     except FileNotFoundError:
         print("Error: The file does not exist.")
@@ -25,31 +25,26 @@ def make_get_request(base_url):
     print(str(content))
 
     return
-    
+
 
 def make_post_request(base_url):
 
-    
     latitude = 34.0156229728407
     longitude = -118.49441383847054
     radius = 10.0
 
-    
     coord_url = f"{base_url}/location/?latitude={latitude}&longitude={longitude}&radius={radius}"
-    
 
     response = requests.post(coord_url)
 
-    print(response)     
+    print(response)
     return
 
-    with open(file_path, 'rb') as audio_file:
-        files = {
-            'file': (file_path, audio_file, 'audio/wav')
-        }
+    with open(file_path, "rb") as audio_file:
+        files = {"file": (file_path, audio_file, "audio/wav")}
         # Sending a POST request with the file
         response = requests.post(url, files=files)
-    
+
     # Checking if the request was successful
     if response.status_code == 200:
         print("Request successful!")
@@ -58,15 +53,16 @@ def make_post_request(base_url):
     else:
         print(f"Request failed with status code: {response.status_code}")
 
+
 def main():
-    base_url = "http://localhost:4000/api"
+    base_url = "http://192.168.61.134:4000/api"
     file_path = "test.wav"
 
     while True:
-        make_post_request(base_url)
         time.sleep(5)
         make_get_request(base_url)
         time.sleep(5)
+
 
 if __name__ == "__main__":
     main()
